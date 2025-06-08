@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const Dashboard = () => {
@@ -12,6 +13,7 @@ const Dashboard = () => {
   });
   const [recentContacts, setRecentContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -53,8 +55,12 @@ const Dashboard = () => {
     }
   };
 
-  const StatCard = ({ title, count, icon, color }) => (
-    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: color }}>
+  const StatCard = ({ title, count, icon, color, onClick }) => (
+    <div 
+      className="bg-white rounded-lg shadow-md p-6 border-l-4 cursor-pointer hover:shadow-lg transition-shadow" 
+      style={{ borderLeftColor: color }}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
@@ -66,6 +72,10 @@ const Dashboard = () => {
       </div>
     </div>
   );
+
+  const handleQuickAction = (path) => {
+    navigate(path);
+  };
 
   if (loading) {
     return (
@@ -89,43 +99,55 @@ const Dashboard = () => {
           count={stats.portfolios}
           icon="📁"
           color="#3B82F6"
+          onClick={() => handleQuickAction('/portfolio')}
         />
         <StatCard
           title="Team Members"
           count={stats.teamMembers}
           icon="👥"
           color="#10B981"
+          onClick={() => handleQuickAction('/team')}
         />
         <StatCard
           title="Services"
           count={stats.services}
           icon="⚙️"
           color="#8B5CF6"
+          onClick={() => handleQuickAction('/services')}
         />
         <StatCard
           title="Testimonials"
           count={stats.testimonials}
           icon="⭐"
           color="#F59E0B"
+          onClick={() => handleQuickAction('/testimonials')}
         />
         <StatCard
           title="Career Openings"
           count={stats.careers}
           icon="💼"
           color="#EF4444"
+          onClick={() => handleQuickAction('/careers')}
         />
         <StatCard
           title="Contact Messages"
           count={stats.contacts}
           icon="📧"
           color="#06B6D4"
+          onClick={() => handleQuickAction('/contacts')}
         />
       </div>
 
       {/* Recent Contacts */}
       <div className="bg-white rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-medium text-gray-900">Recent Contact Messages</h2>
+          <button 
+            onClick={() => handleQuickAction('/contacts')}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            View All
+          </button>
         </div>
         <div className="p-6">
           {recentContacts.length > 0 ? (
@@ -167,19 +189,31 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors">
+          <button 
+            onClick={() => handleQuickAction('/portfolio')}
+            className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors"
+          >
             <div className="text-2xl mb-2">➕</div>
             <p className="text-sm font-medium text-gray-900">Add Portfolio</p>
           </button>
-          <button className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition-colors">
+          <button 
+            onClick={() => handleQuickAction('/team')}
+            className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition-colors"
+          >
             <div className="text-2xl mb-2">👤</div>
             <p className="text-sm font-medium text-gray-900">Add Team Member</p>
           </button>
-          <button className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors">
+          <button 
+            onClick={() => handleQuickAction('/services')}
+            className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors"
+          >
             <div className="text-2xl mb-2">🛠️</div>
             <p className="text-sm font-medium text-gray-900">Add Service</p>
           </button>
-          <button className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition-colors">
+          <button 
+            onClick={() => handleQuickAction('/careers')}
+            className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition-colors"
+          >
             <div className="text-2xl mb-2">💼</div>
             <p className="text-sm font-medium text-gray-900">Post Job</p>
           </button>

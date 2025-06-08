@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   FolderOpen, 
@@ -14,22 +15,35 @@ import {
 } from 'lucide-react';
 import apiService from '../utils/api';
 
-const Layout = ({ children, currentPage, onPageChange, user, onLogout }) => {
+const Layout = ({ children, user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navigation = [
-    { name: 'Dashboard', icon: Home, page: 'dashboard' },
-    { name: 'Portfolio', icon: FolderOpen, page: 'portfolio' },
-    { name: 'Team', icon: Users, page: 'team' },
-    { name: 'Services', icon: Grid3x3, page: 'services' },
-    { name: 'Testimonials', icon: Star, page: 'testimonials' },
-    { name: 'Contacts', icon: Mail, page: 'contacts' },
-    { name: 'Careers', icon: Briefcase, page: 'careers' },
+    { name: 'Dashboard', icon: Home, path: '/' },
+    { name: 'Portfolio', icon: FolderOpen, path: '/portfolio' },
+    { name: 'Team', icon: Users, path: '/team' },
+    { name: 'Services', icon: Grid3x3, path: '/services' },
+    { name: 'Testimonials', icon: Star, path: '/testimonials' },
+    { name: 'Contacts', icon: Mail, path: '/contacts' },
+    { name: 'Careers', icon: Briefcase, path: '/careers' },
   ];
 
   const handleLogout = () => {
     apiService.logout();
     onLogout();
+  };
+
+  const handleNavClick = (path) => {
+    navigate(path);
+    setSidebarOpen(false);
+  };
+
+  // Get current page name from pathname
+  const getCurrentPageName = () => {
+    const currentNav = navigation.find(nav => nav.path === location.pathname);
+    return currentNav ? currentNav.name : 'Dashboard';
   };
 
   return (
@@ -70,18 +84,15 @@ const Layout = ({ children, currentPage, onPageChange, user, onLogout }) => {
           <div className="space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPage === item.page;
+              const isActive = location.pathname === item.path;
               
               return (
                 <button
                   key={item.name}
-                  onClick={() => {
-                    onPageChange(item.page);
-                    setSidebarOpen(false);
-                  }}
+                  onClick={() => handleNavClick(item.path)}
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                     isActive 
-                      ? 'bg-purple-100 text-purple-700 border-r-2 border-purple-700' 
+                      ? 'bg-purple-100 text-purple-700 border-r-4 border-purple-700' 
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -132,8 +143,8 @@ const Layout = ({ children, currentPage, onPageChange, user, onLogout }) => {
               >
                 <Menu className="h-6 w-6" />
               </button>
-              <h1 className="ml-4 md:ml-0 text-2xl font-semibold text-gray-900 capitalize">
-                {(currentPage || 'dashboard').replace(/([A-Z])/g, ' $1').trim()}
+              <h1 className="ml-4 md:ml-0 text-2xl font-semibold text-gray-900">
+                {getCurrentPageName()}
               </h1>
             </div>
             

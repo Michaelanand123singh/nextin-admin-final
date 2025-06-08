@@ -21,20 +21,20 @@ function App() {
   }, []);
 
   const checkAuthStatus = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const response = await api.get('/auth/profile');
-        if (response.data.success) {
-          setUser(response.data.user);
-        }
-      } catch (error) {
-        localStorage.removeItem('token');
-        console.error('Auth check failed:', error);
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const response = await api.getProfile(); // Use getProfile() instead of api.get()
+      if (response.success) {
+        setUser(response.user);
       }
+    } catch (error) {
+      localStorage.removeItem('token');
+      console.error('Auth check failed:', error);
     }
-    setLoading(false);
-  };
+  }
+  setLoading(false);
+};
 
   const handleLogin = (userData, token) => {
     localStorage.setItem('token', token);

@@ -30,17 +30,38 @@ class Api {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // Handle non-JSON responses or empty responses
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = { message: 'No JSON response' };
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
+        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       return data;
     } catch (error) {
       console.error('API Error:', error);
+      
+      // If it's an unauthorized error, clear the token
+      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        this.logout();
+      }
+      
       throw error;
     }
+  }
+
+  // Generic GET method for Dashboard and other components
+  async get(endpoint) {
+    return await this.request(endpoint, {
+      method: 'GET',
+    });
   }
 
   // Auth methods
@@ -67,6 +88,15 @@ class Api {
     this.token = null;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+  }
+
+  // Dashboard methods
+  async getDashboardStats() {
+    return await this.request('/api/dashboard/stats');
+  }
+
+  async getDashboardData() {
+    return await this.request('/api/dashboard');
   }
 
   // Portfolio methods

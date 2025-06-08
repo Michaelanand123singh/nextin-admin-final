@@ -25,9 +25,9 @@ const Team = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/team');
-      if (response.data.success) {
-        setTeamMembers(response.data.data);
+      const response = await api.getTeamMembers();
+      if (response.success) {
+        setTeamMembers(response.data);
       }
     } catch (err) {
       setError('Failed to fetch team members');
@@ -42,17 +42,47 @@ const Team = () => {
     try {
       setLoading(true);
       
+      // Start with required fields only
+      const cleanData = {
+        name: formData.name.trim(),
+        role: formData.role.trim(),
+      };
+      
+      // Add optional fields only if they have valid values
+      if (formData.image && formData.image.trim()) {
+        cleanData.image = formData.image.trim();
+      }
+      
+      if (formData.bio && formData.bio.trim()) {
+        cleanData.bio = formData.bio.trim();
+      }
+      
+      if (formData.email && formData.email.trim()) {
+        cleanData.email = formData.email.trim();
+      }
+      
+      if (formData.linkedin && formData.linkedin.trim()) {
+        cleanData.linkedin = formData.linkedin.trim();
+      }
+      
+      if (formData.twitter && formData.twitter.trim()) {
+        cleanData.twitter = formData.twitter.trim();
+      }
+      
+      console.log('🔍 Form data before cleaning:', formData);
+      console.log('✨ Clean data being sent:', cleanData);
+      
       if (editingMember) {
-        const response = await api.put(`/team/${editingMember._id}`, formData);
-        if (response.data.success) {
+        const response = await api.updateTeamMember(editingMember._id, cleanData);
+        if (response.success) {
           setTeamMembers(teamMembers.map(member => 
-            member._id === editingMember._id ? response.data.data : member
+            member._id === editingMember._id ? response.data : member
           ));
         }
       } else {
-        const response = await api.post('/team', formData);
-        if (response.data.success) {
-          setTeamMembers([response.data.data, ...teamMembers]);
+        const response = await api.createTeamMember(cleanData);
+        if (response.success) {
+          setTeamMembers([response.data, ...teamMembers]);
         }
       }
       
@@ -84,8 +114,8 @@ const Team = () => {
     
     try {
       setLoading(true);
-      const response = await api.delete(`/team/${id}`);
-      if (response.data.success) {
+      const response = await api.deleteTeamMember(id);
+      if (response.success) {
         setTeamMembers(teamMembers.filter(member => member._id !== id));
       }
     } catch (err) {
@@ -318,8 +348,9 @@ const Team = () => {
                     value={formData.linkedin}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://linkedin.com/in/username"
+                    placeholder="https://linkedin.com/in/username (optional)"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty if not applicable</p>
                 </div>
                 
                 <div>
@@ -332,8 +363,9 @@ const Team = () => {
                     value={formData.twitter}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://twitter.com/username"
+                    placeholder="https://twitter.com/username (optional)"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty if not applicable</p>
                 </div>
               </div>
 

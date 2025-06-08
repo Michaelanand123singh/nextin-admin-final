@@ -35,15 +35,50 @@ const Portfolio = () => {
   }, []);
 
   const fetchPortfolios = async () => {
-    try {
-      const response = await api.get('/portfolio');
-      setPortfolios(response.data.data);
-    } catch (error) {
-      console.error('Error fetching portfolios:', error);
-    } finally {
-      setLoading(false);
+  try {
+    console.log('🔍 Starting portfolio fetch...'); // Debug log
+    const response = await api.get('/portfolio');
+    
+    console.log('✅ Response received:', response); // Debug log
+    console.log('📊 Response data structure:', response?.data); // Debug log
+    
+    // Handle different possible response structures safely
+    let portfolioData = [];
+    
+    if (response && response.data) {
+      // Check if data is nested (response.data.data) or direct (response.data)
+      if (response.data.data && Array.isArray(response.data.data)) {
+        portfolioData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        portfolioData = response.data;
+      } else {
+        console.warn('⚠️ Unexpected response structure:', response.data);
+        portfolioData = [];
+      }
     }
-  };
+    
+    console.log('📋 Final portfolio data:', portfolioData);
+    setPortfolios(portfolioData);
+    
+  } catch (error) {
+    console.error('❌ Error fetching portfolios:', error);
+    console.error('🔍 Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
+    // Set empty array as fallback
+    setPortfolios([]);
+    
+    // Optional: Show user-friendly error message
+    // alert('Failed to load portfolios. Please try again.');
+    
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
