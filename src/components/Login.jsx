@@ -34,7 +34,7 @@ const Login = ({ onLogin }) => {
       
       if (response.success) {
         console.log('🎉 Login successful!');
-        onLogin(response.user);
+        onLogin(response.user, response.token);
       }
     } catch (err) {
       console.error('❌ Login error:', err);

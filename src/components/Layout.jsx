@@ -11,7 +11,8 @@ import {
   Menu, 
   X,
   Briefcase,
-  Grid3x3
+  Grid3x3,
+  Clipboard // New icon for projects
 } from 'lucide-react';
 import apiService from '../utils/api';
 
@@ -22,6 +23,7 @@ const Layout = ({ children, user, onLogout }) => {
 
   const navigation = [
     { name: 'Dashboard', icon: Home, path: '/' },
+    { name: 'Projects', icon: Clipboard, path: '/projects' }, // New navigation item
     { name: 'Portfolio', icon: FolderOpen, path: '/portfolio' },
     { name: 'Team', icon: Users, path: '/team' },
     { name: 'Services', icon: Grid3x3, path: '/services' },
@@ -40,7 +42,6 @@ const Layout = ({ children, user, onLogout }) => {
     setSidebarOpen(false);
   };
 
-  // Get current page name from pathname
   const getCurrentPageName = () => {
     const currentNav = navigation.find(nav => nav.path === location.pathname);
     return currentNav ? currentNav.name : 'Dashboard';

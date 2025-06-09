@@ -1,21 +1,38 @@
-// src/utils/api.js
-const API_BASE_URL = import.meta.env.DEV ? '' : 'https://nextinvision-backend-1.onrender.com';
+// src/utils/api.js - Updated for Cloudinary file uploads
+const API_BASE_URL = 'https://nextinvision-backend-1.onrender.com';
 
 class Api {
   constructor() {
     this.baseURL = API_BASE_URL;
-    this.token = localStorage.getItem('token');
   }
 
-  // Helper method to get headers
+  getToken() {
+    return localStorage.getItem('token');
+  }
+
+  // Helper method to get headers for JSON requests
   getHeaders() {
     const headers = {
       'Content-Type': 'application/json',
     };
     
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    const token = this.getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
+    
+    return headers;
+  }
+
+  // Helper method to get headers for file uploads (FormData)
+  getFileHeaders() {
+    const headers = {};
+    
+    const token = this.getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    // Don't set Content-Type for FormData - let browser set it with boundary
     
     return headers;
   }
@@ -29,9 +46,11 @@ class Api {
     };
 
     try {
+      console.log('Making request to:', url);
+      console.log('Headers:', config.headers);
+      
       const response = await fetch(url, config);
       
-      // Handle non-JSON responses or empty responses
       let data;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -41,15 +60,91 @@ class Api {
       }
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+        const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
       return data;
     } catch (error) {
       console.error('API Error:', error);
       
-      // If it's an unauthorized error, clear the token
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('Not authorized')) {
+        this.logout();
+      }
+      
+      throw error;
+    }
+  }
+
+  // Helper method for file upload requests
+  async requestWithFile(endpoint, formData) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    try {
+      console.log('Making file upload request to:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getFileHeaders(),
+        body: formData
+      });
+      
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = { message: 'No JSON response' };
+      }
+
+      if (!response.ok) {
+        const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('File Upload API Error:', error);
+      
+      if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('Not authorized')) {
+        this.logout();
+      }
+      
+      throw error;
+    }
+  }
+
+  // Helper method for file update requests
+  async requestFileUpdate(endpoint, formData) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    try {
+      console.log('Making file update request to:', url);
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: this.getFileHeaders(),
+        body: formData
+      });
+      
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = { message: 'No JSON response' };
+      }
+
+      if (!response.ok) {
+        const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('File Update API Error:', error);
+      
+      if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('Not authorized')) {
         this.logout();
       }
       
@@ -71,8 +166,7 @@ class Api {
       body: JSON.stringify(credentials),
     });
     
-    if (response.success) {
-      this.token = response.token;
+    if (response.success && response.token) {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
     }
@@ -85,7 +179,6 @@ class Api {
   }
 
   logout() {
-    this.token = null;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   }
@@ -99,7 +192,7 @@ class Api {
     return await this.request('/api/dashboard');
   }
 
-  // Portfolio methods
+  // Portfolio methods - Updated for file uploads
   async getPortfolios(filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
     return await this.request(`/api/portfolio${queryString ? `?${queryString}` : ''}`);
@@ -109,18 +202,58 @@ class Api {
     return await this.request(`/api/portfolio/${id}`);
   }
 
-  async createPortfolio(data) {
-    return await this.request('/api/portfolio', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  async createPortfolio(data, imageFile = null) {
+    if (imageFile) {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Append other data as JSON
+      Object.keys(data).forEach(key => {
+        if (key !== 'image') {
+          if (typeof data[key] === 'object') {
+            formData.append(key, JSON.stringify(data[key]));
+          } else {
+            formData.append(key, data[key]);
+          }
+        }
+      });
+      
+      return await this.requestWithFile('/api/portfolio', formData);
+    } else {
+      // No file upload, use regular JSON request
+      return await this.request('/api/portfolio', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    }
   }
 
-  async updatePortfolio(id, data) {
-    return await this.request(`/api/portfolio/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  async updatePortfolio(id, data, imageFile = null) {
+    if (imageFile) {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Append other data
+      Object.keys(data).forEach(key => {
+        if (key !== 'image') {
+          if (typeof data[key] === 'object') {
+            formData.append(key, JSON.stringify(data[key]));
+          } else {
+            formData.append(key, data[key]);
+          }
+        }
+      });
+      
+      return await this.requestFileUpdate(`/api/portfolio/${id}`, formData);
+    } else {
+      // No file upload, use regular JSON request
+      return await this.request(`/api/portfolio/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    }
   }
 
   async deletePortfolio(id) {
@@ -129,7 +262,7 @@ class Api {
     });
   }
 
-  // Team methods
+  // Team methods - Updated for file uploads
   async getTeamMembers() {
     return await this.request('/api/team');
   }
@@ -138,18 +271,50 @@ class Api {
     return await this.request(`/api/team/${id}`);
   }
 
-  async createTeamMember(data) {
-    return await this.request('/api/team', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  async createTeamMember(data, imageFile = null) {
+    if (imageFile) {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Append other data
+      Object.keys(data).forEach(key => {
+        if (key !== 'image') {
+          formData.append(key, data[key]);
+        }
+      });
+      
+      return await this.requestWithFile('/api/team', formData);
+    } else {
+      // No file upload, use regular JSON request
+      return await this.request('/api/team', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    }
   }
 
-  async updateTeamMember(id, data) {
-    return await this.request(`/api/team/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+  async updateTeamMember(id, data, imageFile = null) {
+    if (imageFile) {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Append other data
+      Object.keys(data).forEach(key => {
+        if (key !== 'image') {
+          formData.append(key, data[key]);
+        }
+      });
+      
+      return await this.requestFileUpdate(`/api/team/${id}`, formData);
+    } else {
+      // No file upload, use regular JSON request
+      return await this.request(`/api/team/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    }
   }
 
   async deleteTeamMember(id) {
@@ -289,6 +454,39 @@ class Api {
     return await this.request(`/api/career/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async getProjects(filters = {}) {
+    const queryString = new URLSearchParams(filters).toString();
+    return await this.request(`/api/projects${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getProject(id) {
+    return await this.request(`/api/projects/${id}`);
+  }
+
+  async createProject(data) {
+    return await this.request('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProject(id, data) {
+    return await this.request(`/api/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id) {
+    return await this.request(`/api/projects/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getProjectStats() {
+    return await this.request('/api/projects/stats');
   }
 }
 

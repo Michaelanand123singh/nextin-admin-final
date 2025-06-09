@@ -2,100 +2,98 @@ import React, { useState, useEffect } from 'react';
 import Table from '../components/Table';
 import api from '../utils/api';
 
-const Portfolio = () => {
-  const [portfolios, setPortfolios] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    image: '',
-    url: '',
-    featured: false,
-    type: 'Portfolio',
-    technologies: [],
-    client: '',
-    services: [],
-    metrics: {
-      users: '',
-      transactions: '',
-      uptime: '',
-      performance: '',
-      organicTraffic: '',
-      keywordRankings: '',
-      conversionRate: '',
-      timeframe: ''
-    }
-  });
-
-  useEffect(() => {
-    fetchPortfolios();
-  }, []);
-
-  const fetchPortfolios = async () => {
-  try {
-    console.log('🔍 Starting portfolio fetch...'); // Debug log
-    const response = await api.get('/portfolio');
-    
-    console.log('✅ Response received:', response); // Debug log
-    console.log('📊 Response data structure:', response?.data); // Debug log
-    
-    // Handle different possible response structures safely
-    let portfolioData = [];
-    
-    if (response && response.data) {
-      // Check if data is nested (response.data.data) or direct (response.data)
-      if (response.data.data && Array.isArray(response.data.data)) {
-        portfolioData = response.data.data;
-      } else if (Array.isArray(response.data)) {
-        portfolioData = response.data;
-      } else {
-        console.warn('⚠️ Unexpected response structure:', response.data);
-        portfolioData = [];
-      }
-    }
-    
-    console.log('📋 Final portfolio data:', portfolioData);
-    setPortfolios(portfolioData);
-    
-  } catch (error) {
-    console.error('❌ Error fetching portfolios:', error);
-    console.error('🔍 Error details:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    });
-    
-    // Set empty array as fallback
-    setPortfolios([]);
-    
-    // Optional: Show user-friendly error message
-    // alert('Failed to load portfolios. Please try again.');
-    
-  } finally {
-    setLoading(false);
+const initialFormData = {
+  title: '',
+  description: '',
+  category: '',
+  image: '',
+  url: '',
+  featured: false,
+  type: 'Portfolio',
+  technologies: [],
+  client: '',
+  services: [],
+  metrics: {
+    users: '',
+    transactions: '',
+    uptime: '',
+    performance: '',
+    organicTraffic: '',
+    keywordRankings: '',
+    conversionRate: '',
+    timeframe: ''
   }
 };
 
+const Portfolio = () => {
+  const [state, setState] = useState({
+    portfolios: [],
+    loading: true,
+    showForm: false,
+    editingItem: null,
+    imageFile: null,
+    imagePreview: '',
+    uploadingImage: false,
+    formData: initialFormData
+  });
+
+  useEffect(() => { fetchPortfolios(); }, []);
+
+  const fetchPortfolios = async () => {
+    try {
+      const response = await api.getPortfolios();
+      const portfolioData = response?.data?.data || response?.data || [];
+      setState(s => ({ ...s, portfolios: portfolioData, loading: false }));
+    } catch (error) {
+      console.error('Error fetching portfolios:', error);
+      setState(s => ({ ...s, portfolios: [], loading: false }));
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) return alert('Please select a valid image file');
+    if (file.size > 5 * 1024 * 1024) return alert('Image size should be less than 5MB');
+    
+    setState(s => ({ ...s, imageFile: file }));
+    
+    const reader = new FileReader();
+    reader.onloadend = () => setState(s => ({ ...s, imagePreview: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImageToCloudinary = async (file) => {
+    if (!file) return null;
+    
+    setState(s => ({ ...s, uploadingImage: true }));
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.uploadImage(formData);
+      return response.data?.url || null;
+    } finally {
+      setState(s => ({ ...s, uploadingImage: false }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { formData, imageFile, editingItem } = state;
+    
     try {
       const payload = { ...formData };
       
-      // Clean up data based on type
-      if (formData.type === 'TechProject') {
-        payload.technologies = formData.technologies.filter(tech => tech.trim());
-      } else if (formData.type === 'DigitalMarketingCampaign') {
-        payload.services = formData.services.filter(service => service.trim());
+      if (imageFile) {
+        const imageUrl = await uploadImageToCloudinary(imageFile);
+        payload.image = imageUrl;
       }
 
       if (editingItem) {
-        await api.put(`/portfolio/${editingItem._id}`, payload);
+        await api.updatePortfolio(editingItem._id, payload);
       } else {
-        await api.post('/portfolio', payload);
+        await api.createPortfolio(payload);
       }
       
       fetchPortfolios();
@@ -107,29 +105,33 @@ const Portfolio = () => {
   };
 
   const handleEdit = (item) => {
-    setEditingItem(item);
-    setFormData({
-      ...item,
-      technologies: item.technologies || [],
-      services: item.services || [],
-      metrics: {
-        users: item.metrics?.users || '',
-        transactions: item.metrics?.transactions || '',
-        uptime: item.metrics?.uptime || '',
-        performance: item.metrics?.performance || '',
-        organicTraffic: item.metrics?.organicTraffic || '',
-        keywordRankings: item.metrics?.keywordRankings || '',
-        conversionRate: item.metrics?.conversionRate || '',
-        timeframe: item.metrics?.timeframe || ''
-      }
+    setState({
+      ...state,
+      editingItem: item,
+      formData: {
+        ...item,
+        technologies: item.technologies || [],
+        services: item.services || [],
+        metrics: {
+          users: item.metrics?.users || '',
+          transactions: item.metrics?.transactions || '',
+          uptime: item.metrics?.uptime || '',
+          performance: item.metrics?.performance || '',
+          organicTraffic: item.metrics?.organicTraffic || '',
+          keywordRankings: item.metrics?.keywordRankings || '',
+          conversionRate: item.metrics?.conversionRate || '',
+          timeframe: item.metrics?.timeframe || ''
+        }
+      },
+      imagePreview: item.image || '',
+      showForm: true
     });
-    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this portfolio item?')) {
       try {
-        await api.delete(`/portfolio/${id}`);
+        await api.deletePortfolio(id);
         fetchPortfolios();
       } catch (error) {
         console.error('Error deleting portfolio:', error);
@@ -139,45 +141,58 @@ const Portfolio = () => {
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      category: '',
-      image: '',
-      url: '',
-      featured: false,
-      type: 'Portfolio',
-      technologies: [],
-      client: '',
-      services: [],
-      metrics: {
-        users: '',
-        transactions: '',
-        uptime: '',
-        performance: '',
-        organicTraffic: '',
-        keywordRankings: '',
-        conversionRate: '',
-        timeframe: ''
-      }
+    setState({
+      ...state,
+      formData: initialFormData,
+      editingItem: null,
+      imageFile: null,
+      imagePreview: '',
+      showForm: false
     });
-    setEditingItem(null);
-    setShowForm(false);
   };
 
   const handleArrayInput = (field, value) => {
     const array = value.split(',').map(item => item.trim()).filter(item => item);
-    setFormData({ ...formData, [field]: array });
+    setState(s => ({ ...s, formData: { ...s.formData, [field]: array } }));
+  };
+
+  const updateFormData = (field, value) => {
+    setState(s => ({ ...s, formData: { ...s.formData, [field]: value } }));
+  };
+
+  const updateMetrics = (field, value) => {
+    setState(s => ({
+      ...s,
+      formData: {
+        ...s.formData,
+        metrics: { ...s.formData.metrics, [field]: value }
+      }
+    }));
   };
 
   const columns = [
+    {
+      key: 'image',
+      label: 'Image',
+      render: (_, item) => (
+        <div className="flex items-center">
+          {item.image ? (
+            <img src={item.image} alt={item.title} className="w-12 h-12 object-cover rounded-lg" />
+          ) : (
+            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-500 text-xs">No Image</span>
+            </div>
+          )}
+        </div>
+      )
+    },
     { key: 'title', label: 'Title' },
     { key: 'category', label: 'Category' },
     { key: 'type', label: 'Type' },
     { 
       key: 'featured', 
       label: 'Featured',
-      render: (value) => (
+      render: value => (
         <span className={`px-2 py-1 rounded-full text-xs ${
           value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
         }`}>
@@ -190,16 +205,10 @@ const Portfolio = () => {
       label: 'Actions',
       render: (_, item) => (
         <div className="space-x-2">
-          <button
-            onClick={() => handleEdit(item)}
-            className="text-blue-600 hover:text-blue-800"
-          >
+          <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800">
             Edit
           </button>
-          <button
-            onClick={() => handleDelete(item._id)}
-            className="text-red-600 hover:text-red-800"
-          >
+          <button onClick={() => handleDelete(item._id)} className="text-red-600 hover:text-red-800">
             Delete
           </button>
         </div>
@@ -207,12 +216,14 @@ const Portfolio = () => {
     }
   ];
 
+  const { portfolios, loading, showForm, formData, imagePreview, uploadingImage, editingItem } = state;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Portfolio Management</h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => setState(s => ({ ...s, showForm: true }))}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
         >
           Add Portfolio Item
@@ -232,7 +243,7 @@ const Portfolio = () => {
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => updateFormData('title', e.target.value)}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                   />
@@ -242,7 +253,7 @@ const Portfolio = () => {
                   <input
                     type="text"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => updateFormData('category', e.target.value)}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
@@ -252,7 +263,7 @@ const Portfolio = () => {
                 <label className="block text-sm font-medium text-gray-700">Type</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  onChange={(e) => updateFormData('type', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="Portfolio">Portfolio</option>
@@ -265,31 +276,54 @@ const Portfolio = () => {
                 <label className="block text-sm font-medium text-gray-700">Description</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => updateFormData('description', e.target.value)}
                   rows={3}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Image URL</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Portfolio Image</label>
+                <div className="space-y-3">
                   <input
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    disabled={uploadingImage}
                   />
+                  
+                  {imagePreview && (
+                    <div className="relative">
+                      <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                      <button
+                        type="button"
+                        onClick={() => setState(s => ({ ...s, imageFile: null, imagePreview: '' }))}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        disabled={uploadingImage}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  
+                  {uploadingImage && (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm text-gray-600">Uploading image...</span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Project URL</label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Project URL</label>
+                <input
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => updateFormData('url', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
               </div>
 
               {formData.type === 'TechProject' && (
@@ -301,7 +335,6 @@ const Portfolio = () => {
                     type="text"
                     value={formData.technologies.join(', ')}
                     onChange={(e) => handleArrayInput('technologies', e.target.value)}
-                    placeholder="React, Node.js, MongoDB"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
@@ -314,7 +347,7 @@ const Portfolio = () => {
                     <input
                       type="text"
                       value={formData.client}
-                      onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                      onChange={(e) => updateFormData('client', e.target.value)}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -326,7 +359,6 @@ const Portfolio = () => {
                       type="text"
                       value={formData.services.join(', ')}
                       onChange={(e) => handleArrayInput('services', e.target.value)}
-                      placeholder="SEO, PPC, Content Marketing"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -338,7 +370,7 @@ const Portfolio = () => {
                   <input
                     type="checkbox"
                     checked={formData.featured}
-                    onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                    onChange={(e) => updateFormData('featured', e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">Featured</span>
@@ -350,14 +382,16 @@ const Portfolio = () => {
                   type="button"
                   onClick={resetForm}
                   className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  disabled={uploadingImage}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={uploadingImage}
                 >
-                  {editingItem ? 'Update' : 'Create'}
+                  {uploadingImage ? 'Uploading...' : (editingItem ? 'Update' : 'Create')}
                 </button>
               </div>
             </form>
@@ -365,11 +399,7 @@ const Portfolio = () => {
         </div>
       )}
 
-      <Table
-        columns={columns}
-        data={portfolios}
-        loading={loading}
-      />
+      <Table columns={columns} data={portfolios} loading={loading} />
     </div>
   );
 };

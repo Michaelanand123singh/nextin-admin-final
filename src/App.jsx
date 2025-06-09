@@ -9,6 +9,7 @@ import Services from './pages/Services';
 import Testimonials from './pages/Testimonials';
 import Contacts from './pages/Contacts';
 import Careers from './pages/Careers';
+import ProjectManagement from './pages/ProjectManagement'; // New import
 import api from './utils/api';
 import './App.css';
 
@@ -21,20 +22,20 @@ function App() {
   }, []);
 
   const checkAuthStatus = async () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const response = await api.getProfile(); // Use getProfile() instead of api.get()
-      if (response.success) {
-        setUser(response.user);
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await api.getProfile();
+        if (response.success) {
+          setUser(response.user);
+        }
+      } catch (error) {
+        localStorage.removeItem('token');
+        console.error('Auth check failed:', error);
       }
-    } catch (error) {
-      localStorage.removeItem('token');
-      console.error('Auth check failed:', error);
     }
-  }
-  setLoading(false);
-};
+    setLoading(false);
+  };
 
   const handleLogin = (userData, token) => {
     localStorage.setItem('token', token);
@@ -69,6 +70,7 @@ function App() {
           <Route path="/testimonials" element={<Testimonials />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/projects" element={<ProjectManagement />} /> {/* New route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
