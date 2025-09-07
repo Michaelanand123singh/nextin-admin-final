@@ -29,12 +29,12 @@ const Dashboard = () => {
         servicesRes,
         careersRes
       ] = await Promise.all([
-        api.get('/portfolio'),
-        api.get('/testimonials'),
-        api.get('/team'),
-        api.get('/contacts'),
-        api.get('/service/services'),
-        api.get('/careers')
+        api.get('/api/portfolio'),
+        api.get('/api/testimonials'),
+        api.get('/api/team'),
+        api.get('/api/contacts'),
+        api.get('/api/services/services'),
+        api.get('/api/careers')
       ]);
 
       setStats({

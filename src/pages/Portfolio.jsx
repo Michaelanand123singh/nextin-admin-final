@@ -69,10 +69,9 @@ const Portfolio = () => {
     
     setState(s => ({ ...s, uploadingImage: true }));
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await api.uploadImage(formData);
-      return response.data?.url || null;
+      // For now, we'll use the portfolio create/update endpoints which handle image uploads
+      // The direct upload endpoint is not implemented yet
+      return null; // Let the portfolio endpoints handle the image upload
     } finally {
       setState(s => ({ ...s, uploadingImage: false }));
     }
@@ -83,17 +82,10 @@ const Portfolio = () => {
     const { formData, imageFile, editingItem } = state;
     
     try {
-      const payload = { ...formData };
-      
-      if (imageFile) {
-        const imageUrl = await uploadImageToCloudinary(imageFile);
-        payload.image = imageUrl;
-      }
-
       if (editingItem) {
-        await api.updatePortfolio(editingItem._id, payload);
+        await api.updatePortfolio(editingItem._id, formData, imageFile);
       } else {
-        await api.createPortfolio(payload);
+        await api.createPortfolio(formData, imageFile);
       }
       
       fetchPortfolios();

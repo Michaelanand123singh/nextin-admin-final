@@ -1,5 +1,5 @@
 // src/utils/api.js - Updated for Cloudinary file uploads
-const API_BASE_URL = 'https://nextinvision-backend-1.onrender.com';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 class Api {
   constructor() {
@@ -192,6 +192,11 @@ class Api {
     return await this.request('/api/dashboard');
   }
 
+  // Image upload method for Cloudinary
+  async uploadImage(formData) {
+    return await this.requestWithFile('/api/upload/image', formData);
+  }
+
   // Portfolio methods - Updated for file uploads
   async getPortfolios(filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
@@ -325,58 +330,58 @@ class Api {
 
   // Service methods
   async getServices() {
-    return await this.request('/api/service/services');
+    return await this.request('/api/services/services');
   }
 
   async getService(id) {
-    return await this.request(`/api/service/services/${id}`);
+    return await this.request(`/api/services/services/${id}`);
   }
 
   async createService(data) {
-    return await this.request('/api/service/services', {
+    return await this.request('/api/services/services', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateService(id, data) {
-    return await this.request(`/api/service/services/${id}`, {
+    return await this.request(`/api/services/services/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteService(id) {
-    return await this.request(`/api/service/services/${id}`, {
+    return await this.request(`/api/services/services/${id}`, {
       method: 'DELETE',
     });
   }
 
   // Category methods
   async getCategories() {
-    return await this.request('/api/service/categories');
+    return await this.request('/api/services/categories');
   }
 
   async getCategory(id) {
-    return await this.request(`/api/service/categories/${id}`);
+    return await this.request(`/api/services/categories/${id}`);
   }
 
   async createCategory(data) {
-    return await this.request('/api/service/categories', {
+    return await this.request('/api/services/categories', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateCategory(id, data) {
-    return await this.request(`/api/service/categories/${id}`, {
+    return await this.request(`/api/services/categories/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteCategory(id) {
-    return await this.request(`/api/service/categories/${id}`, {
+    return await this.request(`/api/services/categories/${id}`, {
       method: 'DELETE',
     });
   }
@@ -384,44 +389,44 @@ class Api {
   // Testimonial methods
   async getTestimonials(filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
-    return await this.request(`/api/testimonial${queryString ? `?${queryString}` : ''}`);
+    return await this.request(`/api/testimonials${queryString ? `?${queryString}` : ''}`);
   }
 
   async getTestimonial(id) {
-    return await this.request(`/api/testimonial/${id}`);
+    return await this.request(`/api/testimonials/${id}`);
   }
 
   async createTestimonial(data) {
-    return await this.request('/api/testimonial', {
+    return await this.request('/api/testimonials', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateTestimonial(id, data) {
-    return await this.request(`/api/testimonial/${id}`, {
+    return await this.request(`/api/testimonials/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteTestimonial(id) {
-    return await this.request(`/api/testimonial/${id}`, {
+    return await this.request(`/api/testimonials/${id}`, {
       method: 'DELETE',
     });
   }
 
   // Contact methods
   async getContacts() {
-    return await this.request('/api/contact');
+    return await this.request('/api/contacts');
   }
 
   async getContact(id) {
-    return await this.request(`/api/contact/${id}`);
+    return await this.request(`/api/contacts/${id}`);
   }
 
   async deleteContact(id) {
-    return await this.request(`/api/contact/${id}`, {
+    return await this.request(`/api/contacts/${id}`, {
       method: 'DELETE',
     });
   }
@@ -429,29 +434,29 @@ class Api {
   // Career methods
   async getCareers(filters = {}) {
     const queryString = new URLSearchParams(filters).toString();
-    return await this.request(`/api/career${queryString ? `?${queryString}` : ''}`);
+    return await this.request(`/api/careers${queryString ? `?${queryString}` : ''}`);
   }
 
   async getCareer(id) {
-    return await this.request(`/api/career/${id}`);
+    return await this.request(`/api/careers/${id}`);
   }
 
   async createCareer(data) {
-    return await this.request('/api/career', {
+    return await this.request('/api/careers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateCareer(id, data) {
-    return await this.request(`/api/career/${id}`, {
+    return await this.request(`/api/careers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteCareer(id) {
-    return await this.request(`/api/career/${id}`, {
+    return await this.request(`/api/careers/${id}`, {
       method: 'DELETE',
     });
   }
@@ -487,6 +492,13 @@ class Api {
 
   async getProjectStats() {
     return await this.request('/api/projects/stats');
+  }
+
+  async updateProjectProgress(id, progress) {
+    return await this.request(`/api/projects/${id}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progress }),
+    });
   }
 }
 

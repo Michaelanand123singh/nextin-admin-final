@@ -16,9 +16,9 @@ export default function Contacts() {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/contacts');
-      if (response.data.success) {
-        setContacts(response.data.data);
+      const response = await api.getContacts();
+      if (response.success) {
+        setContacts(response.data || []);
       }
     } catch (error) {
       console.error('Error fetching contacts:', error);
@@ -31,8 +31,8 @@ export default function Contacts() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       try {
-        const response = await api.delete(`/contacts/${id}`);
-        if (response.data.success) {
+        const response = await api.deleteContact(id);
+        if (response.success) {
           setContacts(contacts.filter(contact => contact._id !== id));
           alert('Contact deleted successfully');
         }
@@ -45,9 +45,9 @@ export default function Contacts() {
 
   const handleView = async (id) => {
     try {
-      const response = await api.get(`/contacts/${id}`);
-      if (response.data.success) {
-        setSelectedContact(response.data.data);
+      const response = await api.getContact(id);
+      if (response.success) {
+        setSelectedContact(response.data);
         setShowModal(true);
       }
     } catch (error) {

@@ -37,8 +37,8 @@ const Services = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await api.get('/services/services');
-      setServices(response.data.data);
+      const response = await api.getServices();
+      setServices(response.data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
     } finally {
@@ -48,8 +48,8 @@ const Services = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/services/categories');
-      setCategories(response.data.data);
+      const response = await api.getCategories();
+      setCategories(response.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -64,9 +64,9 @@ const Services = () => {
       };
 
       if (editingService) {
-        await api.put(`/services/services/${editingService._id}`, serviceData);
+        await api.updateService(editingService._id, serviceData);
       } else {
-        await api.post('/services/services', serviceData);
+        await api.createService(serviceData);
       }
       
       fetchServices();
@@ -81,9 +81,9 @@ const Services = () => {
     e.preventDefault();
     try {
       if (editingCategory) {
-        await api.put(`/services/categories/${editingCategory.id}`, categoryFormData);
+        await api.updateCategory(editingCategory.id, categoryFormData);
       } else {
-        await api.post('/services/categories', categoryFormData);
+        await api.createCategory(categoryFormData);
       }
       
       fetchCategories();
@@ -124,7 +124,7 @@ const Services = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
       try {
-        await api.delete(`/services/services/${id}`);
+        await api.deleteService(id);
         fetchServices();
       } catch (error) {
         console.error('Error deleting service:', error);
@@ -136,7 +136,7 @@ const Services = () => {
   const handleCategoryDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
-        await api.delete(`/services/categories/${id}`);
+        await api.deleteCategory(id);
         fetchCategories();
       } catch (error) {
         console.error('Error deleting category:', error);

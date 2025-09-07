@@ -118,6 +118,24 @@ const ProjectManagement = () => {
     }
   };
 
+  const handleProgressUpdate = async (id, progress) => {
+    try {
+      const response = await api.updateProjectProgress(id, progress);
+      if (response.success) {
+        // Update the project in both arrays
+        const updateProject = (project) => 
+          project._id === id ? { ...project, progress } : project;
+        
+        setProjects(projects.map(updateProject));
+        setFilteredProjects(filteredProjects.map(updateProject));
+        loadStats(); // Refresh stats
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      throw error; // Re-throw to let ProjectCard handle the error
+    }
+  };
+
   const handleFormSubmit = async (formData) => {
     try {
       setFormLoading(true);
@@ -281,6 +299,7 @@ const ProjectManagement = () => {
               project={project}
               onEdit={handleEditProject}
               onDelete={handleDeleteProject}
+              onProgressUpdate={handleProgressUpdate}
             />
           ))}
         </div>

@@ -22,8 +22,8 @@ const Testimonials = () => {
 
   const fetchTestimonials = async () => {
     try {
-      const response = await api.get('/testimonials');
-      setTestimonials(response.data.data);
+      const response = await api.getTestimonials();
+      setTestimonials(response.data || []);
     } catch (error) {
       console.error('Error fetching testimonials:', error);
     } finally {
@@ -35,9 +35,9 @@ const Testimonials = () => {
     e.preventDefault();
     try {
       if (editingTestimonial) {
-        await api.put(`/testimonials/${editingTestimonial._id}`, formData);
+        await api.updateTestimonial(editingTestimonial._id, formData);
       } else {
-        await api.post('/testimonials', formData);
+        await api.createTestimonial(formData);
       }
       
       fetchTestimonials();
@@ -63,7 +63,7 @@ const Testimonials = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this testimonial?')) {
       try {
-        await api.delete(`/testimonials/${id}`);
+        await api.deleteTestimonial(id);
         fetchTestimonials();
       } catch (error) {
         console.error('Error deleting testimonial:', error);
